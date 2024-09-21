@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
-import { useNavigate, useParams } from "react-router-dom";
-import { Box, Button, InputLabel, TextField, Typography } from "@mui/material";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Box, Button, InputLabel, TextField, Typography } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
 const BlogDetails = () => {
   const [blog, setBlog] = useState({});
+  const [inputs, setInputs] = useState({});
+  const [image, setImage] = useState(null);
   const id = useParams().id;
   const navigate = useNavigate();
-  const [inputs, setInputs] = useState({});
-  // get blog details
+  const isMobile = useMediaQuery("(max-width:600px)");
+
+  // Fetch blog details
   const getBlogDetail = async () => {
     try {
-      const { data } = await axios.get(`/api/v1/blog/get-blog/${id}`);
+      const { data } = await axios.get(`https://mern-projects-fo6a.onrender.com/api/v1/blog/get-blog/${id}`);
       if (data?.success) {
         setBlog(data?.blog);
         setInputs({
@@ -29,37 +34,66 @@ const BlogDetails = () => {
     getBlogDetail();
   }, [id]);
 
-  // input change
+  // Handle input change
   const handleChange = (e) => {
     setInputs((prevState) => ({
       ...prevState,
       [e.target.name]: e.target.value,
     }));
   };
-  //form
+
+  // Handle image change
+  const handleImageChange = (e) => {
+    setImage(e.target.files[0]);
+  };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    let imageUrl = inputs.image; // Default to existing image URL
+
+    if (image) {
+      const imageFormData = new FormData();
+      imageFormData.append("image", image);
+
+      try {
+        const imageUploadResponse = await axios.post(
+          "https://api.imgbb.com/1/upload?key=3535a83869f4d9396d9c5cf9450b0033",
+          imageFormData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+
+        imageUrl = imageUploadResponse.data.data.url;
+      } catch (error) {
+        console.log(error);
+        toast.error("Failed to upload image");
+        return;
+      }
+    }
+
     try {
-      const { data } = await axios.put(`/api/v1/blog/update-blog/${id}`, {
+      const { data } = await axios.put(`https://mern-projects-fo6a.onrender.com/api/v1/blog/update-blog/${id}`, {
         title: inputs.title,
         description: inputs.description,
-        image: inputs.image,
+        image: imageUrl,
         user: id,
       });
       if (data?.success) {
-        toast.success("Blog Updated");
-        navigate("/my-blogs");
+        toast.success('Blog Updated');
+        navigate('/my-blogs');
       }
     } catch (error) {
       console.log(error);
+      toast.error("Failed to update blog");
     }
   };
-  console.log(blog);
+
   return (
-    <v>
+    <div>
       <form onSubmit={handleSubmit}>
         <Box
-          width={"50%"}
+          width={isMobile ? "90%" : "50%"} // Adjust width for mobile
           border={3}
           borderRadius={10}
           padding={3}
@@ -75,11 +109,12 @@ const BlogDetails = () => {
             fontWeight="bold"
             padding={3}
             color="gray"
+            fontSize={isMobile ? "24px" : "32px"} // Adjust font size for mobile
           >
-            Update A Pots
+            Update A Post
           </Typography>
           <InputLabel
-            sx={{ mb: 1, mt: 2, fontSize: "24px", fontWeight: "bold" }}
+            sx={{ mb: 1, mt: 2, fontSize: isMobile ? "18px" : "24px", fontWeight: "bold" }} // Adjust font size for labels
           >
             Title
           </InputLabel>
@@ -89,10 +124,11 @@ const BlogDetails = () => {
             onChange={handleChange}
             margin="normal"
             variant="outlined"
+            fullWidth
             required
           />
           <InputLabel
-            sx={{ mb: 1, mt: 2, fontSize: "24px", fontWeight: "bold" }}
+            sx={{ mb: 1, mt: 2, fontSize: isMobile ? "18px" : "24px", fontWeight: "bold" }} // Adjust font size for labels
           >
             Description
           </InputLabel>
@@ -102,27 +138,36 @@ const BlogDetails = () => {
             onChange={handleChange}
             margin="normal"
             variant="outlined"
+            fullWidth
             required
           />
           <InputLabel
-            sx={{ mb: 1, mt: 2, fontSize: "24px", fontWeight: "bold" }}
+            sx={{ mb: 1, mt: 2, fontSize: isMobile ? "18px" : "24px", fontWeight: "bold" }} // Adjust font size for labels
           >
-            Image URL
+            Upload New Image
           </InputLabel>
-          <TextField
-            name="image"
-            value={inputs.image}
-            onChange={handleChange}
-            margin="normal"
-            variant="outlined"
-            required
+          <img
+            className="image"
+            src={image ? URL.createObjectURL(image) : inputs.image}
+            alt="Preview"
+            style={{ width: "100px", height: "100px", marginBottom: "1px" }}
           />
-          <Button type="submit" color="warning" variant="contained">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+          <Button
+            type="submit"
+            color="warning"
+            variant="contained"
+            sx={{ marginTop: 2 }}
+          >
             UPDATE
           </Button>
         </Box>
       </form>
-    </v>
+    </div>
   );
 };
 

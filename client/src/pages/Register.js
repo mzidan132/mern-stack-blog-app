@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, TextField, Button } from "@mui/material";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { useDispatch } from "react-redux";
+import { authActions } from "../redux/store";
 const Register = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch()
   //state
   const [inputs, setInputs] = useState({
     name: "",
@@ -24,14 +27,16 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("/api/v1/user/register", {
+      const { data } = await axios.post("https://mern-projects-fo6a.onrender.com/api/v1/user/register", {
         username: inputs.name,
         email: inputs.email,
         password: inputs.password,
       });
-      if (data.success) {
-        toast.success("User Register Successfully");
-        navigate("/login");
+       if (data.success) {
+         toast.success("User Register Successfully");
+        localStorage.setItem("userId", data?.user._id);
+        dispatch(authActions.login());
+        navigate("/");
       }
     } catch (error) {
       console.log(error);
